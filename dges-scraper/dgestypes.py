@@ -79,6 +79,15 @@ class SchoolType(Enum):
 	UNIVERSITY    = 1
 	POLYTECHNICAL = 2
 
+	def to_server_code(self) -> str:
+		""" Converts a SchoolType to a string used to identify it in requests' URLs """
+
+		match self:
+			case SchoolType.UNIVERSITY:
+				return '11'
+			case SchoolType.POLYTECHNICAL:
+				return '12'
+
 @dataclass(eq = True, frozen = True)
 class School:
 	"""
