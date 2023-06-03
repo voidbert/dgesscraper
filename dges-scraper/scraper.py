@@ -16,7 +16,7 @@
    limitations under the License.
 """
 
-from typing import Iterator, Annotated
+from typing import Iterator
 from bs4 import BeautifulSoup
 
 from dgestypes import *
