@@ -118,7 +118,7 @@ def __scrape_student_list_row(row: BeautifulSoup) -> StudentEntry:
 	if (len(tds) != 8):
 		raise RuntimeError('Invalid student row: wrong number of columns')
 
-	tds_text = list(map(lambda elem: __sanitize_html(elem.get_text()), tds))
+	tds_text = [ __sanitize_html(elem.get_text()) for elem in tds ]
 
 	place = 0
 	try:
