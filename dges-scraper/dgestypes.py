@@ -18,6 +18,7 @@
 
 from enum import Enum
 from dataclasses import dataclass
+import pickle
 
 @dataclass(eq = True, frozen = True)
 class StudentEntry:
@@ -132,7 +133,22 @@ class Contest:
 	year: int
 	phase: Phase
 
+# Due to the small dataset size, databases are stored in memory and only cached to disk after
+# all data is collected
+
 CourseStudents = dict[Course, list[StudentEntry]]
 SchoolCourses = dict[School, CourseStudents]
 Database = dict[Contest, SchoolCourses]
+
+def read_database(path: str) -> Database:
+	""" Reads a DGES database from a file """
+
+	with open(path, 'rb') as file:
+		return pickle.load(file)
+
+def write_database(database: Database, path: str) -> None:
+	""" Writes a DGES database to a file """
+
+	with open(path, 'wb') as file:
+		pickle.dump(database, file)
 
