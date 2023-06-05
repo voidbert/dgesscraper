@@ -153,7 +153,8 @@ def scrape_student_list(html: str) -> Iterator[StudentEntry]:
 	soup = soup.find_all(class_='caixa').pop().find('tbody') # Table with candidates
 
 	# Search for a 'no candidates' message
-	search = soup.find(string = lambda e: 'não teve candidatos' in e.text)
+	search = soup.find(string = lambda e: 'não teve candidatos' in e.text or \
+		'não contém dados' in e.text)
 	if search is not None:
 		return
 
