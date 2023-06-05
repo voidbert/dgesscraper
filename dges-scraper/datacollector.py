@@ -19,25 +19,43 @@
    limitations under the License.
 """
 
-from time import sleep
 from concurrent.futures import ThreadPoolExecutor, as_completed
-
-import sys
 
 from dgestypes import *
 from dgesfilter import DGESFilter
 from gracefulexit import GracefulExit
 
 def __thread_work(number: int):
+	from time import sleep
 	print(f'Number: {number}')
 	sleep(5)
 
-def scrape_website(filter: DGESFilter, workers: int) -> Database:
-	""" This method builds a database by scraping all pages requested by the filter """
+def scrape_website(filter: DGESFilter, workers: int, database_path: str = None) -> Database:
+	"""
+		This method builds a database by scraping all pages requested by the filter
+
+		Parameters
+		----------
+
+		filter: DGESFilter
+			The filter that will determine which pages will be downloaded and scraped
+		workers: int
+			The number of parallel workers. If None, the default value in
+			ThreadPoolExecutor will be used.
+		database_path:
+			The path to the database file. If None, the database won't be cached. If the
+			file doesn't exist, it'll be created.
+	"""
+
+	database = attempt_read_database(database_path)
+
+	database[0] = 'Hello, world!' # For testing purposes only
 
 	with ThreadPoolExecutor(max_workers = workers) as executor:
-		with GracefulExit(executor) as graceful:
+		with GracefulExit(executor, database, database_path) as graceful:
 			futures = [ executor.submit(__thread_work, c) for c in range(6) ]
 			for _ in as_completed(futures):
 				pass
 
+	attempt_write_database(database, database_path)
+	return database

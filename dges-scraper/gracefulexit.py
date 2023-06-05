@@ -23,6 +23,8 @@ from concurrent.futures import ThreadPoolExecutor
 import signal
 import sys
 
+from dgestypes import Database, attempt_write_database
+
 class GracefulExit:
 	"""
 		This class sets signal handlers such that, if the program is terminated, all tasks
@@ -34,9 +36,13 @@ class GracefulExit:
 
 	__EXIT_SIGNALS = [ signal.SIGINT, signal.SIGTERM, signal.SIGTSTP, signal.SIGQUIT ]
 
-	def __init__(self, executor: ThreadPoolExecutor):
+	def __init__(self, executor: ThreadPoolExecutor, database: Database, database_path: str):
+		""" Note: database_path can be None, so that the database isn't cached """
+
 		self.executor            = executor
 		self.old_handlers        = {}
+		self.database            = database
+		self.database_path       = database_path
 		self.must_reset_handlers = True
 
 	def __ignore_signal(self, sig, frame):
@@ -45,13 +51,16 @@ class GracefulExit:
 	def __handle_signal(self, sig, frame):
 		""" Internal method for handling signals """
 
-		print('\nOrdered to stop. Shutting down.')
+		print('\nOrdered to stop. Shutting down ...')
 
 		self.executor.shutdown(wait = False, cancel_futures = True)
 
 		for sig in GracefulExit.__EXIT_SIGNALS:
 			signal.signal(sig, self.__ignore_signal)
 		self.must_reset_handlers = False
+
+		print('Saving database ...')
+		attempt_write_database(self.database, self.database_path)
 
 		sys.exit(0)
 
