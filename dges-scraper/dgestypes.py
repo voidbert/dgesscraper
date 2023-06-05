@@ -141,6 +141,32 @@ CourseStudents = dict[Course, list[StudentEntry]]
 SchoolCourses = dict[School, CourseStudents]
 Database = dict[Contest, SchoolCourses]
 
+def is_in_database(database: Database, contest: Contest, school: School = None, \
+	course: Course = None) -> bool:
+
+	"""
+		Checks if something is stored in a database. That can be a contest, a school inside a
+		contest, or a course inside a school inside a contest.
+	"""
+
+	if contest in database and database[contest] is not None:
+		if school is not None:
+			if school in database[contest] and database[contest][school] is not None:
+				if course is not None:
+					if course in database[contest][school] and \
+						database[contest][school][course] is not None:
+							return True
+					else:
+						return False
+				else:
+					return True
+			else:
+				return False
+		else:
+			return True
+	else:
+		return False
+
 def read_database(path: str) -> Database:
 	""" Reads a DGES database from a file """
 
