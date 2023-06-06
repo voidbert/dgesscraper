@@ -23,7 +23,7 @@ from concurrent.futures import ThreadPoolExecutor
 import signal
 import sys
 
-from dgestypes import Database, attempt_write_database
+from database import Database
 
 class GracefulExit:
 	"""
@@ -60,7 +60,7 @@ class GracefulExit:
 		self.must_reset_handlers = False
 
 		print('Saving database ...')
-		attempt_write_database(self.database, self.database_path)
+		self.database.to_cache(self.database_path)
 
 		sys.exit(0)
 

@@ -19,12 +19,13 @@
    limitations under the License.
 """
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, Future, as_completed
 from requests import Request, Session
 from tqdm import tqdm
 from sys import stderr
 
 from dgestypes import *
+from database import Database
 from dgesfilter import DGESFilter
 from gracefulexit import GracefulExit
 import requestfactory
@@ -40,6 +41,22 @@ def __perform_request(request: Request):
 		return resp.text
 	else:
 		raise RuntimeError('Failed to access the following URL: {}'.format(resp.url))
+
+def __progress_bar_executor(futures: list[Future]):
+	"""
+		Sends multiple page scraping tasks to a ThreadPoolExecutor, creating a progress bar and
+		returning a list with the return values of the futures.
+	"""
+
+	successful = []
+	with tqdm(total = len(futures), unit = ' pages') as progress_bar:
+		for future in as_completed(futures):
+			progress_bar.update(1)
+
+			if future.result():
+				successful.append(future.result()) # Successful scrape
+
+	return successful
 
 # +------------------+
 # | CONTEST SCRAPING |
@@ -57,16 +74,13 @@ def __try_scrape_contest(database: Database, contest: Contest) -> Contest:
 	"""
 
 	try:
-		contest_schools = { }
-
+		contest_schools = []
 		for t in SchoolType:
 			request = requestfactory.create_school_list_request(contest, t)
 			html = __perform_request(request)
+			contest_schools += list(scraper.scrape_school_list(html, t))
 
-			for school in scraper.scrape_school_list(html, t):
-				contest_schools[school] = None
-
-		database[contest] = contest_schools
+		database.add_contest(contest, contest_schools)
 		return contest
 	except:
 		print(f'Failed to scrape contest {contest}', file = stderr)
@@ -83,24 +97,17 @@ def __scrape_contests(filter: DGESFilter, executor: ThreadPoolExecutor, database
 	"""
 
 	# Only scrape the uncached contests. Cached contests are considered successfully scraped
-	all_contests = filter.list_contests()
 	to_scrape, successful = [], []
 	for contest in filter.list_contests():
-		(to_scrape, successful)[is_in_database(database, contest)].append(contest)
+		(to_scrape, successful)[contest in database].append(contest)
 
 	if not to_scrape:
 		print('All needed contests are already cached')
 		return successful
 
 	# Scrape all contests (school lists) that aren't cached
-	with tqdm(total = len(to_scrape), unit = ' pages') as progress_bar:
-		futures = [ executor.submit(__try_scrape_contest, database, c) for c in to_scrape ]
-		for future in as_completed(futures):
-			progress_bar.update(1)
-
-			if future.result():
-				successful.append(future.result()) # Successful scrape
-
+	futures = [ executor.submit(__try_scrape_contest, database, c) for c in to_scrape ]
+	successful += __progress_bar_executor(futures)
 	return successful
 
 # +-----------------+
@@ -118,15 +125,9 @@ def __try_scrape_school(database: Database, contest: Contest, school: School) ->
 	"""
 
 	try:
-		school_courses = { }
-
 		request = requestfactory.create_course_list_request(contest, school)
 		html = __perform_request(request)
-
-		for course in scraper.scrape_course_list(html):
-			school_courses[course] = None
-
-		database[contest][school] = school_courses
+		database.add_school(contest, school, list(scraper.scrape_course_list(html)))
 		return (contest, school)
 	except:
 		print(f'Failed to scrape school {contest} / {school}', file = stderr)
@@ -144,25 +145,18 @@ def __scrape_schools(filter: DGESFilter, executor: ThreadPoolExecutor, database:
 	# Only scrape the uncached schools. Cached schools are considered successfully scraped
 	to_scrape, successful = [], []
 	for c in successful_contests:
-		for s in database[c]:
+		for s in database.dictionary[c]:
 			if filter.filter_schools(c, s):
-				(to_scrape, successful)[is_in_database(database, c, s)].append((c, s))
+				(to_scrape, successful)[(c, s) in database].append((c, s))
 
 	if not to_scrape:
 		print('All needed schools are already cached')
 		return successful
 
 	# Scrape all schools (course lists) that aren't cached
-	with tqdm(total = len(to_scrape), unit = ' pages') as progress_bar:
-		futures = [ executor.submit(__try_scrape_school, database, contest, school) \
-			for contest, school in to_scrape ]
-
-		for future in as_completed(futures):
-			progress_bar.update(1)
-
-			if future.result():
-				successful.append(future.result()) # Successful scrape
-
+	futures = [ executor.submit(__try_scrape_school, database, contest, school) \
+		for contest, school in to_scrape ]
+	successful += __progress_bar_executor(futures)
 	return successful
 
 # +-----------------+
@@ -184,7 +178,7 @@ def __try_scrape_course(database: Database, contest: Contest, school: School, co
 	try:
 		request = requestfactory.create_student_list_request(contest, school, course)
 		html = __perform_request(request)
-		database[contest][school][course] = list(scraper.scrape_student_list(html))
+		database.add_course(contest, school, course, list(scraper.scrape_student_list(html)))
 		return (contest, school, course)
 	except:
 		print(f'Failed to scrape course {contest} / {school} / {course}', file = stderr)
@@ -203,9 +197,9 @@ def __scrape_courses(filter: DGESFilter, executor: ThreadPoolExecutor, database:
 	# Only scrape the uncached courses. Cached courses are considered successfully scraped
 	to_scrape, successful = [], []
 	for contest, school in successful_schools:
-		for course in database[contest][school]:
+		for course in database.dictionary[contest][school]:
 			if filter.filter_courses(contest, school, course):
-				(to_scrape, successful)[is_in_database(database, contest, school, course)]\
+				(to_scrape, successful)[(contest, school, course) in database] \
 					.append((contest, school, course))
 
 	if not to_scrape:
@@ -213,16 +207,9 @@ def __scrape_courses(filter: DGESFilter, executor: ThreadPoolExecutor, database:
 		return successful
 
 	# Scrape all courses (student lists) that aren't cached
-	with tqdm(total = len(to_scrape), unit = ' pages') as progress_bar:
-		futures = [ executor.submit(__try_scrape_course, database, contest, school, course) \
-			for contest, school, course in to_scrape ]
-
-		for future in as_completed(futures):
-			progress_bar.update(1)
-
-			if future.result():
-				successful.append(future.result()) # Successful scrape
-
+	futures = [ executor.submit(__try_scrape_course, database, contest, school, course) \
+		for contest, school, course in to_scrape ]
+	successful += __progress_bar_executor(futures)
 	return successful
 
 
@@ -244,7 +231,7 @@ def scrape_website(filter: DGESFilter, workers: int, database_path: str = None) 
 			file doesn't exist, it'll be created.
 	"""
 
-	database = attempt_read_database(database_path)
+	database = Database.from_cache(database_path)
 
 	with ThreadPoolExecutor(max_workers = workers) as executor:
 		with GracefulExit(executor, database, database_path) as graceful:
@@ -260,6 +247,6 @@ def scrape_website(filter: DGESFilter, workers: int, database_path: str = None) 
 			__scrape_courses(filter, executor, database, successful_schools)
 
 	print('Saving database ...')
-	attempt_write_database(database, database_path)
+	database.to_cache(database_path)
 	return database
 
