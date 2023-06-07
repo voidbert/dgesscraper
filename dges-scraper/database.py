@@ -21,6 +21,7 @@ from os.path import isfile
 from typing import Iterator
 
 from dgestypes import *
+from dgesfilter import *
 
 CourseStudents = dict[Course, list[StudentEntry]]
 SchoolCourses = dict[School, CourseStudents]
@@ -144,4 +145,60 @@ class Database:
 			any current data.
 		"""
 		self.dictionary[contest][school][course] = students
+
+	def iterate_contests(self, filter: DGESFilter = UniversalFilter(), only_cached: bool = True)\
+		-> Iterator[tuple[Contest, SchoolCourses]]:
+
+		"""
+			Iterates through the database, looking for contests accepted by the provided
+			filter. If only_cached is True, contests with a None value (corresponding list of
+			schools hasn't yet been scraped) won't be returned.
+		"""
+
+		for contest in self.dictionary.keys():
+			if filter.list_contests() is None or contest in filter.list_contests():
+				if not only_cached or self.dictionary[contest] is not None:
+					yield (contest, self.dictionary[contest])
+
+	def iterate_schools(self, filter: DGESFilter = UniversalFilter(), only_cached: bool = True) \
+		-> Iterator[tuple[Contest, School, CourseStudents]]:
+
+		"""
+			Iterates through the database, looking for schools accepted by the provided
+			filter. If only_cached is True, schools with a None value (correspoding list of
+			courses hasn't yet been scraped) won't be returned.
+		"""
+
+		for contest, school_courses in self.iterate_contests(filter, True):
+			for school in school_courses.keys():
+				if filter.filter_schools(contest, school):
+					if not only_cached or school_courses[school] is not None:
+						yield (contest, school, school_courses[school])
+
+	def iterate_courses(self, filter: DGESFilter = UniversalFilter(), only_cached: bool = True) \
+		-> Iterator[tuple[Contest, School, Course, list[StudentEntry]]]:
+
+		"""
+			Iterates through the database, looking for courses accepted by the provided
+			filter. If only_cached is True, courses with a None value (correspoding list of
+			students hasn't yet been scraped) won't be returned.
+		"""
+
+		for contest, school, course_students in self.iterate_schools(filter, True):
+			for course in course_students.keys():
+				if filter.filter_courses(contest, school, course):
+					if not only_cached or course_students[course] is not None:
+						yield (contest, school, course, course_students[course])
+
+	def iterate_students(self, filter: DGESFilter = UniversalFilter()) \
+		-> Iterator[tuple[Contest, School, Course, StudentEntry]]:
+
+		"""
+			Iterates through the database, looking for students in courses accepted by the
+			provided filter.
+		"""
+
+		for contest, school, course, students in self.iterate_courses(filter, True):
+			for student in students:
+				yield (contest, school, course, student)
 

@@ -1,4 +1,7 @@
-""" This module defines an abstract base class for filtering what to scrape in DGES's website """
+"""
+	This module defines an abstract base class for filtering what to scrape in DGES's website
+	or what to look up in a database.
+"""
 
 """
    Copyright 2023 Humberto Gomes
@@ -30,7 +33,16 @@ class DGESFilter(ABC):
 
 	@abstractmethod
 	def list_contests(self) -> Iterator[Contest]:
-		""" This method returns an iterator of contests to be scraped """
+		"""
+			This method returns an iterator of contests to be scraped. When scraping, there
+			is no way to know what contest years the server provides. Therefore, an iterator
+			of contests is needed (instead of a boolean function to determine whether or not
+			to scrape the contest).
+
+			For website scraping, this must return an iterator of contests. However, for
+			database iteration, if this method returns None, all contests in the database
+			will be processed (as if there were no filter).
+		"""
 
 	@abstractmethod
 	def filter_schools(self, contest: Contest, school: School) -> bool:
@@ -55,14 +67,26 @@ class UniversalFilter(DGESFilter):
 		Scraping the whole website will be a very lengthy process.
 	"""
 
-	def __init__(self, years: list[int]):
+	def __init__(self, years: list[int] = None):
+		"""
+			If this filter is only used for database searching, the list of years can be
+			None, and all contests in the database will be considered.
+		"""
+
 		self.years = years
 
 	def list_contests(self) -> Iterator[Contest]:
 		# Cartesian product of years and set of all phases
-		for year in self.years:
-			for phase in [ Phase.FIRST, Phase.SECOND, Phase.THIRD ]:
-				yield Contest(year, phase)
+		def cartesian():
+			for year in self.years:
+				for phase in [ Phase.FIRST, Phase.SECOND, Phase.THIRD ]:
+					yield Contest(year, phase)
+
+
+		if self.years is None:
+			return None
+		else:
+			return cartesian()
 
 	def filter_schools(self, contest: Contest, school: School) -> bool:
 		return True
