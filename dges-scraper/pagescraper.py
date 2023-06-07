@@ -115,12 +115,14 @@ def __extract_integer_grade(g: str) -> int:
 	except:
 		raise RuntimeError(f'Scraping error: Invalid integer grade: "{g}"')
 
-def __scrape_candidate_list_row(row: BeautifulSoup) -> StudentEntry:
+def __scrape_candidate_list_row(row: BeautifulSoup, accepted: list[tuple[int, str]]) \
+	-> StudentEntry:
+
 	""" Extracts student information from a row in a list of candidates """
 
 	tds = row.find_all('td')
 	if (len(tds) != 8):
-		raise RuntimeError('Invalid student row: wrong number of columns')
+		raise RuntimeError('Invalid candidate row: wrong number of columns')
 
 	tds_text = [ __sanitize_html(elem.get_text()) for elem in tds ]
 
@@ -144,13 +146,18 @@ def __scrape_candidate_list_row(row: BeautifulSoup) -> StudentEntry:
 	grade_12    = __extract_integer_grade(tds_text[6])
 	grade_10_11 = __extract_integer_grade(tds_text[7])
 
-	return StudentEntry(place, gov_id, name, option, grade, grade_exams, grade_12, grade_10_11)
+	return StudentEntry(place, gov_id, name, option, grade, grade_exams, grade_12, grade_10_11, \
+		(gov_id, name) in accepted)
 
-def scrape_candidate_list(html: str) -> Iterator[StudentEntry]:
+def scrape_candidate_list(html: str, accepted: Iterator[tuple[int, str]]) \
+	-> Iterator[StudentEntry]:
 	"""
-		Scrape a webpage containing a list of candidates to a course.
+		Scrape a webpage containing a list of candidates to a course. A list of the accepted
+		students is needed to determine if a given candidate was or not accepted.
 		This method may throw exceptions on invalid pages.
 	"""
+
+	accepted = list(accepted)
 
 	# html5lib, though slower, is needed, because the website doesn't close its HTML tags
 	soup = BeautifulSoup(html, 'html5lib')
@@ -164,6 +171,39 @@ def scrape_candidate_list(html: str) -> Iterator[StudentEntry]:
 
 	row = soup.find('tr')
 	while row is not None:
-		yield __scrape_candidate_list_row(row)
+		yield __scrape_candidate_list_row(row, accepted)
+		row = row.find_next_sibling('tr')
+
+def __scrape_accepted_list_row(row: BeautifulSoup) -> (int, str):
+	"""
+		Extracts student information from a row in a list of students placed in a course.
+		A pair with the student's ID and their name is returned.
+	"""
+
+	tds = row.find_all('td')
+	if (len(tds) != 2):
+		raise RuntimeError('Invalid accepted student row: wrong number of columns')
+
+	return (__extract_id(tds[0].get_text()), __sanitize_html(tds[1].get_text()))
+
+def scrape_accepted_list(html: str) -> Iterator[tuple[int, str]]:
+	"""
+		Scrape a webpage containing a list of students accepted to a course.
+		This method may throw exceptions on invalid pages.
+	"""
+
+	# html5lib, though slower, is needed, because the website doesn't close its HTML tags
+	soup = BeautifulSoup(html, 'html5lib')
+	soup = soup.find_all(class_='caixa').pop().find('tbody') # Table with candidates
+
+	# Search for a 'no placed students' or 'no data' message
+	search = soup.find(string = lambda e: 'não teve colocados' in e.text or \
+		'não contém dados' in e.text)
+	if search is not None:
+		return
+
+	row = soup.find('tr')
+	while row is not None:
+		yield __scrape_accepted_list_row(row)
 		row = row.find_next_sibling('tr')
 

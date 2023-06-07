@@ -167,7 +167,7 @@ def __try_scrape_course(database: Database, contest: Contest, school: School, co
 	-> (Contest, School, Course):
 
 	"""
-		Scrapes a course (list of candidates) and saves it to the database.
+		Scrapes a course (list of candidates and place students) and saves it to the database.
 
 		In case of error, it's printed to stderr and None is returned. Otherwise, the provided
 		(contest, school, course) tuple is returned.
@@ -176,10 +176,18 @@ def __try_scrape_course(database: Database, contest: Contest, school: School, co
 	"""
 
 	try:
-		request = requestfactory.create_student_list_request(contest, school, course)
-		html = __perform_request(request)
+		# List of accepted students
+		accepted_request = requestfactory.create_accepted_list_request(contest, school, course)
+		accepted_html = __perform_request(accepted_request)
+		accepted = pagescraper.scrape_accepted_list(accepted_html)
+
+		# List of candidates
+		candidates_request = \
+			requestfactory.create_candidate_list_request(contest, school, course)
+		candidates_html = __perform_request(candidates_request)
+
 		database.add_course(contest, school, course, \
-			list(pagescraper.scrape_candidate_list(html)))
+			list(pagescraper.scrape_candidate_list(candidates_html, accepted)))
 		return (contest, school, course)
 	except:
 		print(f'Failed to scrape course {contest} / {school} / {course}', file = stderr)

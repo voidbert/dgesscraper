@@ -44,6 +44,9 @@ class StudentEntry:
 		Student's grade in 12th grade (from 0 to 2000 points)
 	grade_10_11: int
 		Average grade from 10th and 11th grades (from 0 to 2000 points)
+
+	accepted: bool
+		If the student got into the course
 	"""
 
 	place:  int
@@ -55,6 +58,8 @@ class StudentEntry:
 	grade_exams: int
 	grade_12:    int
 	grade_10_11: int
+
+	accepted: bool
 
 @dataclass(eq = True, frozen = True)
 class Course:

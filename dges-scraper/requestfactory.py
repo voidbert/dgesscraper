@@ -42,7 +42,7 @@ def create_course_list_request(contest: Contest, school: School) -> Request:
 		'listagem': 'Lista+Ordenada+de+Candidatos' # Ordered list of candidates
 	})
 
-def create_student_list_request(contest: Contest, school: School, course: Course) -> Request:
+def create_candidate_list_request(contest: Contest, school: School, course: Course) -> Request:
 	"""
 		Generates a request for the page containing the list of candidates to a course in a
 		school, in a given contest.
@@ -59,4 +59,18 @@ def create_student_list_request(contest: Contest, school: School, course: Course
 	url = f'https://www.dges.gov.pt/coloc/{contest.year}/col{contest.phase.value}listaser.asp?' \
 		f'CodEstab={school.code}&CodCurso={course.code}&ids=1&ide=9999&Mx=0'
 	return Request('GET', url)
+
+def create_accepted_list_request(contest: Contest, school: School, course: Course) -> Request:
+	"""
+		Generates a request for the page containing the list of student accepted into a course
+		in a school, in a given contest.
+	"""
+
+	url = f'https://www.dges.gov.pt/coloc/{contest.year}/col{contest.phase.value}listacol.asp'
+	return Request('POST', url, data = {
+		'CodCurso': course.code,
+		'CodEstab': school.code,
+		'CodR': school.school_type.to_server_code(),
+		'search': 'Continuar'
+	})
 
