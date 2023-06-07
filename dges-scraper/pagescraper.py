@@ -1,4 +1,7 @@
-""" This module scrapes HTML from DGES websites """
+"""
+	This module scrapes individual HTML pages (school lists, course lists and sutdent lists) from
+	DGES's website.
+"""
 
 """
    Copyright 2023 Humberto Gomes
@@ -23,7 +26,7 @@ from dgestypes import *
 
 def __sanitize_html(html: str) -> str:
 	"""
-		Pieces of a webpage can contain untrimmed whitespace or whitespace characters other
+		Pieces of a webpage can contain untrimmed whitespace, or whitespace characters other
 		than space. This method removes those.
 	"""
 	return ''.join([ c for c in html.strip() if c not in ['\t', '\n'] ])
@@ -35,7 +38,8 @@ def __sanitize_html(html: str) -> str:
 def __option_list_remove_code(name: str) -> str:
 	"""
 		Auxiliary method for __scrape_option_list. In a school / course listing, options are
-		preceded by their code. This method removes it, leaving only the human-readable name.
+		preceded by an identification code. This method returns the string without the code,
+		this is, the human-readable name of the school / course.
 	"""
 
 	try:
@@ -72,12 +76,12 @@ def scrape_course_list(html: str) -> Iterator[Course]:
 	for code, name in __scrape_option_list(html):
 		yield Course(code, name)
 
-# +-----------------------+
-# | STUDENT LIST SCRAPING |
-# +-----------------------+
+# +-------------------------+
+# | CANDIDATE LIST SCRAPING |
+# +-------------------------+
 
 def __extract_id(id: str) -> int:
-	""" Transforms a partial ID ( XXX(...)XX ) from a candidate list into the integer XXXXX """
+	""" Transforms a partial ID ( XXX(...)XX ) from a candidate list the integer XXXXX """
 
 	try:
 		index = id.index('(...)')
@@ -88,8 +92,8 @@ def __extract_id(id: str) -> int:
 
 def __extract_decimal_grade(g: str) -> int:
 	"""
-		Extracts a grade in decimal format from the page of student entries
-		Used for final and exam grades
+		Extracts a grade in decimal format from the page of student entries.
+		Used for final and exam grades.
 	"""
 
 	try:
@@ -101,8 +105,8 @@ def __extract_decimal_grade(g: str) -> int:
 
 def __extract_integer_grade(g: str) -> int:
 	"""
-		Extracts a grade in integer format from the page of student entries
-		Used for 12th and 10-11th grade grades
+		Extracts a grade in integer format from the page of student entries.
+		Used for 12th and 10-11th grade grades.
 	"""
 
 	try:
@@ -111,8 +115,8 @@ def __extract_integer_grade(g: str) -> int:
 	except:
 		raise RuntimeError(f'Scraping error: Invalid integer grade: "{g}"')
 
-def __scrape_student_list_row(row: BeautifulSoup) -> StudentEntry:
-	""" Extracts student information from a row of a list of candidates """
+def __scrape_candidate_list_row(row: BeautifulSoup) -> StudentEntry:
+	""" Extracts student information from a row in a list of candidates """
 
 	tds = row.find_all('td')
 	if (len(tds) != 8):
@@ -142,17 +146,17 @@ def __scrape_student_list_row(row: BeautifulSoup) -> StudentEntry:
 
 	return StudentEntry(place, gov_id, name, option, grade, grade_exams, grade_12, grade_10_11)
 
-def scrape_student_list(html: str) -> Iterator[StudentEntry]:
+def scrape_candidate_list(html: str) -> Iterator[StudentEntry]:
 	"""
 		Scrape a webpage containing a list of candidates to a course.
-		This method may throw exception on invalid pages.
+		This method may throw exceptions on invalid pages.
 	"""
 
 	# html5lib, though slower, is needed, because the website doesn't close its HTML tags
 	soup = BeautifulSoup(html, 'html5lib')
 	soup = soup.find_all(class_='caixa').pop().find('tbody') # Table with candidates
 
-	# Search for a 'no candidates' message
+	# Search for a 'no candidates' or 'no data' message
 	search = soup.find(string = lambda e: 'não teve candidatos' in e.text or \
 		'não contém dados' in e.text)
 	if search is not None:
@@ -160,6 +164,6 @@ def scrape_student_list(html: str) -> Iterator[StudentEntry]:
 
 	row = soup.find('tr')
 	while row is not None:
-		yield __scrape_student_list_row(row)
+		yield __scrape_candidate_list_row(row)
 		row = row.find_next_sibling('tr')
 

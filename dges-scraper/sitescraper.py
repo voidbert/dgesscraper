@@ -29,7 +29,7 @@ from database import Database
 from dgesfilter import DGESFilter
 from gracefulexit import GracefulExit
 import requestfactory
-import scraper
+import pagescraper
 
 def __perform_request(request: Request):
 	""" Performs a web request in a new session, raising a runtime error in case of failure """
@@ -44,8 +44,8 @@ def __perform_request(request: Request):
 
 def __progress_bar_executor(futures: list[Future]):
 	"""
-		Sends multiple page scraping tasks to a ThreadPoolExecutor, creating a progress bar and
-		returning a list with the return values of the futures.
+		Creates a progress bar to keep track of the completion of the provided futures, sent
+		to a ThreadPoolExecutor. A list of the return values of the futures is returned.
 	"""
 
 	successful = []
@@ -78,7 +78,7 @@ def __try_scrape_contest(database: Database, contest: Contest) -> Contest:
 		for t in SchoolType:
 			request = requestfactory.create_school_list_request(contest, t)
 			html = __perform_request(request)
-			contest_schools += list(scraper.scrape_school_list(html, t))
+			contest_schools += list(pagescraper.scrape_school_list(html, t))
 
 		database.add_contest(contest, contest_schools)
 		return contest
@@ -127,7 +127,7 @@ def __try_scrape_school(database: Database, contest: Contest, school: School) ->
 	try:
 		request = requestfactory.create_course_list_request(contest, school)
 		html = __perform_request(request)
-		database.add_school(contest, school, list(scraper.scrape_course_list(html)))
+		database.add_school(contest, school, list(pagescraper.scrape_course_list(html)))
 		return (contest, school)
 	except:
 		print(f'Failed to scrape school {contest} / {school}', file = stderr)
@@ -178,7 +178,8 @@ def __try_scrape_course(database: Database, contest: Contest, school: School, co
 	try:
 		request = requestfactory.create_student_list_request(contest, school, course)
 		html = __perform_request(request)
-		database.add_course(contest, school, course, list(scraper.scrape_student_list(html)))
+		database.add_course(contest, school, course, \
+			list(pagescraper.scrape_candidate_list(html)))
 		return (contest, school, course)
 	except:
 		print(f'Failed to scrape course {contest} / {school} / {course}', file = stderr)
