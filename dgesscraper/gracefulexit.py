@@ -23,7 +23,7 @@ from concurrent.futures import ThreadPoolExecutor
 import signal
 import sys
 
-from database import Database
+from dgesscraper.database import Database
 
 class GracefulExit:
 	"""

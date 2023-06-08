@@ -24,12 +24,12 @@ from requests import Request, Session
 from tqdm import tqdm
 from sys import stderr
 
-from dgestypes import *
-from database import Database
-from dgesfilter import DGESFilter
-from gracefulexit import GracefulExit
-import requestfactory
-import pagescraper
+from dgesscraper.dgestypes import *
+from dgesscraper.database import Database
+from dgesscraper.dgesfilter import DGESFilter
+from dgesscraper.gracefulexit import GracefulExit
+import dgesscraper.requestfactory as requestfactory
+import dgesscraper.pagescraper as pagescraper
 
 def __perform_request(request: Request):
 	""" Performs a web request in a new session, raising a runtime error in case of failure """

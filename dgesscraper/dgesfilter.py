@@ -22,7 +22,7 @@
 from typing import Iterator
 from abc import abstractmethod, ABC
 
-from dgestypes import *
+from dgesscraper.dgestypes import *
 
 class DGESFilter(ABC):
 	"""

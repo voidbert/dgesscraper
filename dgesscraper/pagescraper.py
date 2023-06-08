@@ -22,7 +22,7 @@
 from typing import Iterator
 from bs4 import BeautifulSoup
 
-from dgestypes import *
+from dgesscraper.dgestypes import *
 
 def __sanitize_html(html: str) -> str:
 	"""
