@@ -24,9 +24,9 @@ from requests import Request, Session
 from tqdm import tqdm
 from sys import stderr
 
-from dgesscraper.dgestypes import *
+from dgesscraper.types import *
 from dgesscraper.database import Database
-from dgesscraper.dgesfilter import DGESFilter
+from dgesscraper.filter import DGESFilter
 from dgesscraper.gracefulexit import GracefulExit
 import dgesscraper.requestfactory as requestfactory
 import dgesscraper.pagescraper as pagescraper

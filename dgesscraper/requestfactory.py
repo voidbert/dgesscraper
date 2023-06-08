@@ -16,7 +16,7 @@
    limitations under the License.
 """
 
-from dgesscraper.dgestypes import *
+from dgesscraper.types import *
 from requests import Request
 
 def create_school_list_request(contest: Contest, school_type: SchoolType) -> Request:

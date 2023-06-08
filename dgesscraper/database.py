@@ -20,8 +20,8 @@ import pickle
 from os.path import isfile
 from typing import Iterator
 
-from dgesscraper.dgestypes import *
-from dgesscraper.dgesfilter import *
+from dgesscraper.types import *
+from dgesscraper.filter import *
 
 CourseStudents = dict[Course, list[StudentEntry]]
 SchoolCourses = dict[School, CourseStudents]
