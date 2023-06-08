@@ -1,4 +1,7 @@
-""" This module defines a Database class, for storing data for multiple DGES contests """
+"""
+	@file database.py
+	@brief This module defines a `Database` class, for storing data for multiple DGES contests
+"""
 
 """
    Copyright 2023 Humberto Gomes
@@ -29,36 +32,91 @@ DatabaseDict = dict[Contest, SchoolCourses]
 
 class Database:
 	"""
-		A database for storing DGES data from multiple contests. It is internally implemented
-		using a dictionary, because it's small enough to fully fit in memory.
+		@brief A database for storing DGES data from multiple contests.
+		@details
 
-		The structure of the database is one of a nested dictionary accessed like this:
-		database[contest][school][course] returns a list of student entries, the list of
-		candidates to that course.
+		### Dictionary structure
 
-		Any one of the nested dictionaries can have a valid key and a None value. That means
-		that part of the database hasn't been cached yet. The key is, however, necessary! For
-		example, if a course has a None value, the list of candidates hasn't been scraped yet.
-		However, the list of courses in that school (list of keys) is valid.
+		A database is internally implemented using a nested dictionary, because the type of
+		data that it stores is small enough to fully fit in memory.
+
+		Any one of the nested dictionaries can have a key with a corresponding `None` value.
+		For example, if `dictionary[contest][school]` is `None`, that means that the list of
+		courses for that school hasn't yet been scraped. However, the presence of the school as
+		a dictionary key is crucial, to store the information that the school is part of the
+		list of schools of that contest.
+
+		You can access the database dictionary directly, the following way:
+
+		```
+		database.dicitonary[contest][school][course]
+		```
+
+		This returns a list of [student entries](@ref dgesscraper.types.StudentEntry), the list
+		of candidates to that course.
+
+		For example, if you wish to know the courses provided by a school, you can use:
+
+		```
+		database.dictionary[contest][school].keys()
+		```
+
+		@anchor dbiter
+		### Database iteration
+
+		If you don't wish to access particular contests / schools / courses, you can iterate
+		through the whole (or part of the) database, using one of the following methods:
+
+		- [iterate_contests](@ref Database.iterate_contests)
+		- [iterate_schools](@ref Database.iterate_schools)
+		- [iterate_courses](@ref Database.iterate_courses)
+		- [iterate_students](@ref Database.iterate_students)
+
+		The provided [DGESFilter](@ref dgesscraper.filter.DGESFilter) allows you to iterate
+		through only a part of part of the database. Keep in mind that, for example, while
+		iterating through courses, the filter will also be used to discard contests and
+		schools. Therefore, a given contest may meet the condition in
+		[DGESFilter.filter_courses](@ref dgesscraper.filter.DGESFilter.filter_courses), but be
+		discarded, because either the parent school or contest failed verification by the
+		filter. If no filter is provided, the methods iterate through the whole database (see
+		[UniversalFilter](@ref dgesscraper.filter.UniversalFilter)).
+
+		When applicable, the `only_cached` parameter, `True` by default, determines whether
+		only objects with a non-`None` value should be returned (only already scraped and
+		cached contests / school / courses).
+
+		When yielding an item, its parents are also provided, along with the data associated
+		with that item. That is indicated by the return type of each function. For example,
+		when iterating through schools, the parent contest is returned along with the school.
+		The last element of the tuple is the data associated with the school, this is, a
+		dictionary that associates courses with lists of candidates.
 	"""
 
-	ATTEMPT_WRITE_DATABASE_BACKUP_PATH = 'dgesdb.pickle' # See to_cache
+	## See @ref Database.to_cache
+	ATTEMPT_WRITE_DATABASE_BACKUP_PATH = 'dgesdb.pickle'
 
 	def __init__(self, dictionary: DatabaseDict):
-		""" Creates a database from a dictionary """
+		""" @brief Creates a database from a dictionary """
 		self.dictionary = dictionary
 
 	@staticmethod
 	def from_file(path: str) -> 'Database':
-		""" Reads a DGES database from a file """
+		"""
+			@brief Reads a DGES database from a file
+			@details The output is the internal dictionary in a binary format (see
+			         [pickle](https://docs.python.org/3/library/pickle.html))
+		"""
 		with open(path, 'rb') as file:
 			return Database(pickle.load(file))
 
 	@staticmethod
 	def from_cache(path: str) -> 'Database':
 		"""
-			Similar to from_file, but will return an empty database if the cache file doesn't
-			exist or if the path is None (no caching).
+			@brief Similar to @ref Database.from_file.
+			@details Differences from @ref Database.from_file:
+
+			- If @p path is `None` (no caching), no file operations will be performed.
+			- If there is no file in @p path, an empty @ref Database will be returned.
 		"""
 
 		if path is None or not isfile(path):
@@ -67,15 +125,22 @@ class Database:
 			return Database.from_file(path)
 
 	def to_file(self, path: str) -> None:
-		""" Saves a DGES database to a file """
+		"""
+			@brief Saves a DGES database to a file
+			@details The output is the internal dictionary in a binary format (see
+			         [pickle](https://docs.python.org/3/library/pickle.html))
+		"""
 		with open(path, 'wb') as file:
 			pickle.dump(self.dictionary, file)
 
 	def to_cache(self, path: str) -> None:
 		"""
-			Similar to to_file, but this method will try to save a backup copy to
-			ATTEMPT_WRITE_DATABASE_BACKUP_PATH if writing to the specified path fails.
-			Also, if path is None, no files are saved (no caching).
+			@brief Similar to @ref Database.to_file
+			@details Differences from @ref Database.to_file:
+
+			- If @p path is `None` (no caching), no file operations will be performed.
+			- If writing to @p path fails, this method will attempt to write a backup copy
+			  of the database to @ref Database.ATTEMPT_WRITE_DATABASE_BACKUP_PATH.
 		"""
 
 		if path is None: # No caching
@@ -97,11 +162,16 @@ class Database:
 
 	def __contains__(self, item):
 		"""
-			Checks if an item is contained in the database. The item can be.
+			@brief Checks if an item is present in the database. The item can be.
 
-			  - A contest
-			  - A (contest, school) pair
-			  - A (contest, school, course) tuple
+			- A [Contest](@ref dgesscraper.types.Contest)
+
+			- A ([Contest](@ref dgesscraper.types.Contest),
+			     [School](@ref dgesscraper.types.School)) pair
+
+			- A ([Contest](@ref dgesscraper.types.Contest),
+			     [School](@ref dgesscraper.types.School),
+			     [Course](@ref dgesscraper.types.Course)) tuple
 		"""
 
 		dictionary = self.dictionary
@@ -118,8 +188,10 @@ class Database:
 
 	def add_contest(self, contest: Contest, school_list: Iterator[School]):
 		"""
-			Adds contest information (list of schools) to the database. This will overwrite
-			any current data.
+			@brief Adds [Contest](@ref dgesscraper.types.Contest) information (list of
+			[schools](@ref dgesscraper.types.School)) to the database.
+
+			@details This will overwrite any current data.
 		"""
 
 		contest_schools = {}
@@ -129,8 +201,10 @@ class Database:
 
 	def add_school(self, contest: Contest, school: School, course_list: Iterator[Course]):
 		"""
-			Adds school information (list of courses) to the database. This will overwrite
-			any current data.
+			@brief Adds [School](@ref dgesscraper.types.School) information (list of
+			[courses](@ref dgesscraper.types.Course)) to the database.
+
+			@details This will overwrite any current data.
 		"""
 
 		school_courses = {}
@@ -141,19 +215,17 @@ class Database:
 	def add_course(self, contest: Contest, school: School, course: Course, \
 		    students: Iterator[StudentEntry]):
 		"""
-			Adds course information (list of candidates) to the database. This will overwrite
-			any current data.
+			@brief Adds [Course](@ref dgesscraper.types.Course) information (list of
+			candidates) to the database.
+
+			@details This will overwrite any current data.
 		"""
 		self.dictionary[contest][school][course] = students
 
 	def iterate_contests(self, filter: DGESFilter = UniversalFilter(), only_cached: bool = True)\
 		-> Iterator[tuple[Contest, SchoolCourses]]:
 
-		"""
-			Iterates through the database, looking for contests accepted by the provided
-			filter. If only_cached is True, contests with a None value (corresponding list of
-			schools hasn't yet been scraped) won't be returned.
-		"""
+		""" @brief See [Database iteration](@ref dbiter). """
 
 		for contest in self.dictionary.keys():
 			if filter.list_contests() is None or contest in filter.list_contests():
@@ -163,11 +235,7 @@ class Database:
 	def iterate_schools(self, filter: DGESFilter = UniversalFilter(), only_cached: bool = True) \
 		-> Iterator[tuple[Contest, School, CourseStudents]]:
 
-		"""
-			Iterates through the database, looking for schools accepted by the provided
-			filter. If only_cached is True, schools with a None value (correspoding list of
-			courses hasn't yet been scraped) won't be returned.
-		"""
+		""" @brief See [Database iteration](@ref dbiter). """
 
 		for contest, school_courses in self.iterate_contests(filter, True):
 			for school in school_courses.keys():
@@ -178,11 +246,7 @@ class Database:
 	def iterate_courses(self, filter: DGESFilter = UniversalFilter(), only_cached: bool = True) \
 		-> Iterator[tuple[Contest, School, Course, list[StudentEntry]]]:
 
-		"""
-			Iterates through the database, looking for courses accepted by the provided
-			filter. If only_cached is True, courses with a None value (correspoding list of
-			students hasn't yet been scraped) won't be returned.
-		"""
+		""" @brief See [Database iteration](@ref dbiter). """
 
 		for contest, school, course_students in self.iterate_schools(filter, True):
 			for course in course_students.keys():
@@ -193,10 +257,7 @@ class Database:
 	def iterate_students(self, filter: DGESFilter = UniversalFilter()) \
 		-> Iterator[tuple[Contest, School, Course, StudentEntry]]:
 
-		"""
-			Iterates through the database, looking for students in courses accepted by the
-			provided filter.
-		"""
+		""" @brief See [Database iteration](@ref dbiter). """
 
 		for contest, school, course, students in self.iterate_courses(filter, True):
 			for student in students:
