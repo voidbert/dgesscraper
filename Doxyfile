@@ -1,0 +1,11 @@
+INPUT                  = dgesscraper README.md
+FILE_PATTERNS          = *.py
+
+OUTPUT_DIRECTORY       = docs
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+
+PROJECT_NAME           = dgesscraper
+USE_MDFILE_AS_MAINPAGE = README.md
+OPTIMIZE_OUTPUT_JAVA   = YES
+
