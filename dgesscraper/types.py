@@ -1,4 +1,8 @@
-""" This module contains data types for representing higher education access contests """
+"""
+	@file types.py
+	@package dgesscraper.types
+	@brief This module contains data types for representing higher education access contests
+"""
 
 """
    Copyright 2023 Humberto Gomes
@@ -21,71 +25,58 @@ from dataclasses import dataclass
 
 @dataclass(eq = True, frozen = True)
 class StudentEntry:
-	"""
-	Information about a candidate to a certain course
+	""" @brief Information about a candidate to a certain course """
 
-	Attributes
-	----------
+	## @brief The place of the student in the list of candidates (ordered by grade)
+	place: int
 
-	place:  int
-		The place of the student in the list of candidates (ordered by grade)
+	## @brief The first 3 and last 2 digits of the student's government ID, combined into an
+	#         integer
+	#  @details For more details, see
+	#           [pagescraper.__extract_id](@ref dgesscraper.pagescraper.__extract_id)
 	gov_id: int
-		The first 3 and last 2 digits of the student's government ID, combined into an integer
-	name:   str
-		The name of the student
-	option: int
-		The preference of the student for this course (1 to 6)
 
-	grade:       int
-		Final average grade of the student (from 0 to 2000 points)
-	grade_exams: int
-		Average grade of the exams required for this course (from 0 to 2000 points)
-	grade_12:    int
-		Student's grade in 12th grade (from 0 to 2000 points)
-	grade_10_11: int
-		Average grade from 10th and 11th grades (from 0 to 2000 points)
+	## @brief Name of the student
+	name: str
 
-	accepted: bool
-		If the student got into the course
-	"""
-
-	place:  int
-	gov_id: int
-	name:   str
+	## @brief The preference of the student for this course (1 to 6)
 	option: int
 
-	grade:       int
+	## @brief Final average grade of the student (from 0 to 2000 points)
+	grade: int
+	## @brief Average grade of the exams required for this course (from 0 to 2000 points)
 	grade_exams: int
-	grade_12:    int
+	## @brief Student's grade in 12th grade (from 0 to 2000 points)
+	grade_12: int
+	## @brief Average grade from 10th and 11th grades (from 0 to 2000 points)
 	grade_10_11: int
 
+	## @brief If the student got into the course
+	#  @details Note that a student can meet the acceptance criteria (better grades than the
+	#           candidate with the worst grades), and this variable can still be `False`, in case
+	#           the student got accepted into a course higher up in their list of options.
 	accepted: bool
 
 @dataclass(eq = True, frozen = True)
 class Course:
-	"""
-	Information about a course
+	""" @brief Information about a course """
 
-	Attributes
-	----------
-
-	code: str
-		An unique identifier for a course within a school
-	name: str
-		The human-readable name of the course
-	"""
-
+	## @brief An unique course identifier **within its [school](@ref dgesscraper.types.School)**
 	code:       str
+	## @brief The human-readable name of the course
 	name:       str
 
 class SchoolType(Enum):
-	""" The type of an upper education school (university or polytechnical school) """
+	""" @brief The type of an upper education school (university or polytechnical school) """
 
 	UNIVERSITY    = 1
 	POLYTECHNICAL = 2
 
 	def to_server_code(self) -> str:
-		""" Converts a SchoolType to a string used to identify it in requests' URLs """
+		"""
+			@brief Converts a [SchoolType](@ref dgesscraper.types.SchoolType) to a string,
+			used to identify it in requests' URLs
+		"""
 
 		if self == SchoolType.UNIVERSITY:
 			return '11'
@@ -94,26 +85,17 @@ class SchoolType(Enum):
 
 @dataclass(eq = True, frozen = True)
 class School:
-	"""
-	Information about a higher education school
+	""" @brief Information about a higher education school """
 
-	Attributes
-	----------
-
+	## @brief The type of the school (university or polytechnical school)
 	school_type: SchoolType
-		The type of this school (university or polytechnical school)
-	code: str
-		A unique school identifier
-	name: str
-		The human-readable name of the school
-	"""
-
-	school_type: SchoolType
+	## @brief A unique school identifier **within its [contest](@ref dgesscraper.types.Contest)**
 	code:        str
+	## @brief The human-readable name of the school
 	name:        str
 
 class Phase(Enum):
-	""" A phase of a higher education access contest """
+	""" @brief A phase of a higher education access contest """
 
 	FIRST  = 1
 	SECOND = 2
@@ -121,18 +103,10 @@ class Phase(Enum):
 
 @dataclass(eq = True, frozen = True)
 class Contest:
-	"""
-	Data about a public higher education access contest
+	""" @brief Data about a public higher education access contest """
 
-	Attributes
-	----------
-
+	## @brief The year of the contest
 	year: int
-		The year of the context
-	phase: Phase
-		The phase of the context
-	"""
-
-	year: int
+	## @brief The name of the contest
 	phase: Phase
 
