@@ -1,5 +1,6 @@
 """
 	@file database.py
+	@package dgesscraper.database
 	@brief This module defines a `Database` class, for storing data for multiple DGES contests
 """
 
