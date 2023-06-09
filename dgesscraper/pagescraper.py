@@ -1,6 +1,15 @@
 """
-	This module scrapes individual HTML pages (school lists, course lists and sutdent lists) from
-	DGES's website.
+	@file pagescraper.py
+	@package dgesscraper.pagescraper
+	@brief This module scrapes individual HTML pages (school lists, course lists and student
+	       lists) from DGES's website.
+
+	@details Use the following methods to scrape different types of pages on the DGES website:
+
+	- [scrape_school_list](@ref dgesscraper.pagescraper.scrape_school_list)
+	- [scrape_course_list](@ref dgesscraper.pagescraper.scrape_course_list)
+	- [scrape_candidate_list](@ref dgesscraper.pagescraper.scrape_candidate_list)
+	- [scrape_accepted_list](@ref dgesscraper.pagescraper.scrape_accepted_list)
 """
 
 """
@@ -26,8 +35,9 @@ from dgesscraper.types import *
 
 def __sanitize_html(html: str) -> str:
 	"""
-		Pieces of a webpage can contain untrimmed whitespace, or whitespace characters other
-		than space. This method removes those.
+		@brief Internal method to remove bad spacing from HTML
+		@details Pieces of a webpage can contain untrimmed whitespace, or whitespace characters
+		         other than space (like tabs, or line feeds). This method removes those.
 	"""
 	return ''.join([ c for c in html.strip() if c not in ['\t', '\n'] ])
 
@@ -37,9 +47,11 @@ def __sanitize_html(html: str) -> str:
 
 def __option_list_remove_code(name: str) -> str:
 	"""
-		Auxiliary method for __scrape_option_list. In a school / course listing, options are
-		preceded by an identification code. This method returns the string without the code,
-		this is, the human-readable name of the school / course.
+		@brief Internal method that returns the human-readable name of an item in an option
+		       list.
+		@details Internal auxiliary function for
+		         [__scrape_option_list](@ref dgesscraper.pagescraper.__scrape_option_list).
+		         Every option name is preceded by a code, that this function removes.
 	"""
 
 	try:
@@ -52,8 +64,10 @@ def __option_list_remove_code(name: str) -> str:
 
 def __scrape_option_list(html: str) -> Iterator[tuple[str, str]]:
 	"""
-		Scrapes pairs of (code, name) from lists where the user chooses what page to visit
-		next, namely, lists of schools and lists of courses in a school.
+		@brief Internal method that scrapes pages where the user chooses what page to visit
+		       next
+		@details This type of page is used to list schools per contest and courses per school
+		@returns Iterates through pairs with the structure `(code, name)`
 	"""
 
 	# html5lib, though slower, is needed, because the website doesn't close its HTML tags
@@ -65,13 +79,18 @@ def __scrape_option_list(html: str) -> Iterator[tuple[str, str]]:
 		tag = tag.find_next('option')
 
 def scrape_school_list(html: str, school_type: SchoolType) -> Iterator[School]:
-	""" Scrapes a webpage containing a list of schools """
+	"""
+		@brief Scrapes a webpage containing a list of schools
+		@details The @p school_type won't affect the scraping process, but will be the type of
+		         the returned schools, as there is no way to tell the type of schools from the
+		         page's HTML.
+	"""
 
 	for code, name in __scrape_option_list(html):
 		yield School(school_type, code, name)
 
 def scrape_course_list(html: str) -> Iterator[Course]:
-	""" Scrapes a webpage containing a list of courses in a school """
+	""" @brief Scrapes a webpage containing a list of courses in a school """
 
 	for code, name in __scrape_option_list(html):
 		yield Course(code, name)
@@ -81,7 +100,10 @@ def scrape_course_list(html: str) -> Iterator[Course]:
 # +-------------------------+
 
 def __extract_id(id: str) -> int:
-	""" Transforms a partial ID ( XXX(...)XX ) from a candidate list the integer XXXXX """
+	"""
+		@brief Internal method for transforming a partial ID (`XXX(...)XX`) from a candidate
+		       list into the integer `XXXXX`.
+	"""
 
 	try:
 		index = id.index('(...)')
@@ -92,8 +114,9 @@ def __extract_id(id: str) -> int:
 
 def __extract_decimal_grade(g: str) -> int:
 	"""
-		Extracts a grade in decimal format from the page of student entries.
-		Used for final and exam grades.
+		@brief Internal method for extracting a grade in decimal format from the page of
+		       student entries.
+		@details Used for final and exam grades.
 	"""
 
 	try:
@@ -105,8 +128,9 @@ def __extract_decimal_grade(g: str) -> int:
 
 def __extract_integer_grade(g: str) -> int:
 	"""
-		Extracts a grade in integer format from the page of student entries.
-		Used for 12th and 10-11th grade grades.
+		@brief Internal method for extracting a grade in integer format from the page of
+		       student entries.
+		@details Used for 12th and 10-11th grade grades.
 	"""
 
 	try:
@@ -118,7 +142,13 @@ def __extract_integer_grade(g: str) -> int:
 def __scrape_candidate_list_row(row: BeautifulSoup, accepted: list[tuple[int, str]]) \
 	-> StudentEntry:
 
-	""" Extracts student information from a row in a list of candidates """
+	"""
+		@brief Internal method for extraction of student information from a row in a list of
+		       candidates
+
+		@param row      The table row with the candidate information
+		@param accepted The list of students accepted into the course
+	"""
 
 	tds = row.find_all('td')
 	if (len(tds) != 8):
@@ -149,12 +179,15 @@ def __scrape_candidate_list_row(row: BeautifulSoup, accepted: list[tuple[int, st
 	return StudentEntry(place, gov_id, name, option, grade, grade_exams, grade_12, grade_10_11, \
 		(gov_id, name) in accepted)
 
-def scrape_candidate_list(html: str, accepted: Iterator[tuple[int, str]]) \
+def scrape_candidate_list(html: str, accepted: Iterator[tuple[int, str]] = iter(())) \
 	-> Iterator[StudentEntry]:
 	"""
-		Scrape a webpage containing a list of candidates to a course. A list of the accepted
-		students is needed to determine if a given candidate was or not accepted.
-		This method may throw exceptions on invalid pages.
+		@brief Scrapes a webpage containing a list of candidates to a course.
+		@details This method may throw exceptions on invalid pages.
+
+		@param html The HTML source of the page
+		@param accepted A list of the accepted students is needed to determine if a given
+		candidate was or not accepted.
 	"""
 
 	accepted = list(accepted)
@@ -176,8 +209,11 @@ def scrape_candidate_list(html: str, accepted: Iterator[tuple[int, str]]) \
 
 def __scrape_accepted_list_row(row: BeautifulSoup) -> (int, str):
 	"""
-		Extracts student information from a row in a list of students placed in a course.
-		A pair with the student's ID and their name is returned.
+		@brief Internal method for extraction of information from a row in a list of accepted
+		       students.
+
+		@returns A pair with the student's ID
+		         (see [__extract_id](@ref dgesscraper.pagescraper.__extract_id)) and their name.
 	"""
 
 	tds = row.find_all('td')
@@ -188,8 +224,9 @@ def __scrape_accepted_list_row(row: BeautifulSoup) -> (int, str):
 
 def scrape_accepted_list(html: str) -> Iterator[tuple[int, str]]:
 	"""
-		Scrape a webpage containing a list of students accepted to a course.
-		This method may throw exceptions on invalid pages.
+		@brief Scrapes a webpage containing a list of students accepted to a course.
+		@details This method may throw exceptions on invalid pages.
+		@returns Iterates through pairs with the stucture `(ID, name)`.
 	"""
 
 	# html5lib, though slower, is needed, because the website doesn't close its HTML tags
