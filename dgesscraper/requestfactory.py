@@ -1,4 +1,8 @@
-""" This module allows for generation of web requests to access DGES information """
+"""
+	@file requestfactory.py
+	@package dgesscraper.requestfactory
+	@brief This module allows for generation of web requests to access DGES information
+"""
 
 """
    Copyright 2023 Humberto Gomes
@@ -21,8 +25,8 @@ from requests import Request
 
 def create_school_list_request(contest: Contest, school_type: SchoolType) -> Request:
 	"""
-		Generates a request for the page containing the list of of schools of a certain type in
-		a given contest
+		@brief Generates a request for the page containing the list of schools of a certain
+		       type in a given contest
 	"""
 
 	url = f'https://www.dges.gov.pt/coloc/{contest.year}/col{contest.phase.value}listas.asp?' \
@@ -31,8 +35,8 @@ def create_school_list_request(contest: Contest, school_type: SchoolType) -> Req
 
 def create_course_list_request(contest: Contest, school: School) -> Request:
 	"""
-		Generates a request for the page containing the list of courses that a given school
-		provided during a contest
+		@brief Generates a request for the page containing the list of courses that a given
+		       school provided during a contest
 	"""
 
 	url = f'https://www.dges.gov.pt/coloc/{contest.year}/col{contest.phase.value}listaredir.asp'
@@ -44,8 +48,8 @@ def create_course_list_request(contest: Contest, school: School) -> Request:
 
 def create_candidate_list_request(contest: Contest, school: School, course: Course) -> Request:
 	"""
-		Generates a request for the page containing the list of candidates to a course in a
-		school, in a given contest.
+		@brief Generates a request for the page containing the list of candidates to a course
+		       in a school, in a given contest.
 	"""
 
 	# Note on fixed-value URL parameters:
@@ -62,8 +66,8 @@ def create_candidate_list_request(contest: Contest, school: School, course: Cour
 
 def create_accepted_list_request(contest: Contest, school: School, course: Course) -> Request:
 	"""
-		Generates a request for the page containing the list of student accepted into a course
-		in a school, in a given contest.
+		@brief Generates a request for the page containing the list of students accepted into a
+		       course in a school, in a given contest.
 	"""
 
 	url = f'https://www.dges.gov.pt/coloc/{contest.year}/col{contest.phase.value}listacol.asp'
