@@ -1,6 +1,8 @@
 """
-	This module defines an abstract base class for filtering what to scrape in DGES's website
-	or what to look up in a database.
+	@file filter.py
+	@package dgestypes.filters
+	@brief This module defines an abstract base class for filtering what to scrape in DGES's
+	       website or what to look up in a database.
 """
 
 """
@@ -26,51 +28,57 @@ from dgesscraper.types import *
 
 class DGESFilter(ABC):
 	"""
-		An abstract base class that is used to filter what web pages need to scraped (to
-		avoid scraping the whole website, when that is not needed). Note that you can't filter
-		students per course, as those are all in the same webpage.
+		@brief An abstract base class used to filter the DGES website or database
+		@details A filter can be used to:
+
+		- Restrict what pages are scraped in [sitescraper](@ref dgesscraper.sitescraper);
+		- Restrict what parts of a [Database](@ref dgesscraper.database.Database) are iterated
+		through.
+
+		Note that you can't filter students per course, as those are all in the same webpage.
 	"""
 
 	@abstractmethod
 	def list_contests(self) -> Iterator[Contest]:
 		"""
-			This method returns an iterator of contests to be scraped. When scraping, there
-			is no way to know what contest years the server provides. Therefore, an iterator
-			of contests is needed (instead of a boolean function to determine whether or not
-			to scrape the contest).
+			@brief This method returns all the contests accepted by this filter.
 
-			For website scraping, this must return an iterator of contests. However, for
-			database iteration, if this method returns None, all contests in the database
-			will be processed (as if there were no filter).
+			@details For database iteration, returning `None` will cause the whole database
+			to be iterated through. However, that's not a possibility when scraping,
+			because there's no way of knowing the list of available contests.
 		"""
 
 	@abstractmethod
 	def filter_schools(self, contest: Contest, school: School) -> bool:
 		"""
-			Given a contest and a school, this method determines if the list of courses
-			that school provides should be scraped. If false, consequently, the lists of
-			candidates to those courses won't be scraped.
+			@brief Given a contest and a school, this method determines whether the
+			corresponding list of courses should be considered.
+
+			@details If `False`, consequently, the lists of candidates to those courses won't
+			be considered.
 		"""
 
 	@abstractmethod
 	def filter_courses(self, contest: Contest, school: School, course: Course) -> bool:
 		"""
-			Given a contest, a school and a course, this method determines if the list of
-			candidates to that course should be scraped.
+			@brief Given a contest, a school and a course, this method determines whether the
+			correponding list of candidates should be considered.
 		"""
 
 class UniversalFilter(DGESFilter):
 	"""
-		A filter that scrapes all courses and all schools, for a given list of years (there is
-		no way to know all the years stored on the server, so you need to provide it yourself).
-
-		Scraping the whole website will be a very lengthy process.
+		@brief A filter that scrapes all courses and all schools, for a given list of years.
+		@details Note that scraping the whole website will be a very lengthy process.
 	"""
 
 	def __init__(self, years: list[int] = None):
 		"""
-			If this filter is only used for database searching, the list of years can be
-			None, and all contests in the database will be considered.
+			@brief Creates an `UniversalFilter`
+			@details
+
+			For website scraping, a list of years must be provided. For example:
+			`UniversalFilter(list(range(2018, 2023)))`. However, that is not needed for
+			database iteration: `UniversalFilter()`.
 		"""
 
 		self.years = years
