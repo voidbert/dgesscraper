@@ -1,6 +1,11 @@
 """
-	This module contains methods to go through the whole DGES website, storing collected data
-	in a database.
+	@file sitescraper.py
+	@package dgesscraper.sitescraper
+	@brief This module contains methods to go through the whole DGES website, storing collected
+	data in a database.
+
+	@details You're likely interested in
+	[scrape_website](@ref dgesscraper.sitescraper.scrape_website).
 """
 
 """
@@ -31,8 +36,11 @@ from dgesscraper.gracefulexit import GracefulExit
 import dgesscraper.requestfactory as requestfactory
 import dgesscraper.pagescraper as pagescraper
 
-def __perform_request(request: Request):
-	""" Performs a web request in a new session, raising a runtime error in case of failure """
+def __perform_request(request: Request) -> str:
+	"""
+		@brief Internal method that performs a web request in a new session, raising a runtime
+		error in case of failure
+	"""
 
 	session = Session()
 	resp = session.send(session.prepare_request(request))
@@ -42,10 +50,11 @@ def __perform_request(request: Request):
 	else:
 		raise RuntimeError('Failed to access the following URL: {}'.format(resp.url))
 
-def __progress_bar_executor(futures: list[Future]):
+def __progress_bar_executor(futures: list[Future]) -> list[object]:
 	"""
-		Creates a progress bar to keep track of the completion of the provided futures, sent
-		to a ThreadPoolExecutor. A list of the return values of the futures is returned.
+		@brief Internal method that creates a progress bar to keep track of the completion of
+		the provided futures.
+		@returns A list of the non-`None` results of the futures.
 	"""
 
 	successful = []
@@ -53,7 +62,7 @@ def __progress_bar_executor(futures: list[Future]):
 		for future in as_completed(futures):
 			progress_bar.update(1)
 
-			if future.result():
+			if future.result() is not None:
 				successful.append(future.result()) # Successful scrape
 
 	return successful
@@ -64,13 +73,11 @@ def __progress_bar_executor(futures: list[Future]):
 
 def __try_scrape_contest(database: Database, contest: Contest) -> Contest:
 	"""
-		Scrapes a contest (list of schools, merging universities and polytechnical schools) and
-		saves it to the database.
+		@brief Internal method that scrapes a contest (list of schools, merging universities
+		and polytechnical schools), and saves it to the @p database.
 
-		In case of error, it's printed to stderr and None is returned. Otherwise, the provided
-		contest is returned.
-
-		This method should be run on the multiple threads of an executor.
+		@details This method should be run on the multiple threads of an executor.
+		@returns `None` in case of error, @p contest in case of success.
 	"""
 
 	try:
@@ -89,11 +96,11 @@ def __scrape_contests(filter: DGESFilter, executor: ThreadPoolExecutor, database
 	-> list[Contest]:
 
 	"""
-		Scrapes all contests (lists of schools) requested by a filter, merging universities and
-		polytechnical schools, and saves those lists to the database. A progress bar is shown
-		while that is happening.
-
-		A list of the successfully scraped contests is returned.
+		@brief Internal method that scrapes all contests (lists of schools) requested by @p
+		filter, merging universities and polytechnical schools, and saves those lists to the
+		@p database.
+		@details A progress bar is shown while that is happening.
+		@returns A list of the successfully scraped contests.
 	"""
 
 	# Only scrape the uncached contests. Cached contests are considered successfully scraped
@@ -116,12 +123,11 @@ def __scrape_contests(filter: DGESFilter, executor: ThreadPoolExecutor, database
 
 def __try_scrape_school(database: Database, contest: Contest, school: School) -> (Contest, School):
 	"""
-		Scrapes a school (list of courses) and saves it to the database.
+		@brief Internal method that scrapes a @p school (list of courses) and saves it to the
+		@p database.
 
-		In case of error, it's printed to stderr and None is returned. Otherwise, the provided
-		contest / school pair is returned.
-
-		This method should be run on the multiple threads of an executor.
+		@details This method should be run on the multiple threads of an executor.
+		@returns `None` in case of error, `(contest, school)` in case of success.
 	"""
 
 	try:
@@ -136,10 +142,10 @@ def __scrape_schools(filter: DGESFilter, executor: ThreadPoolExecutor, database:
 	successful_contests: list[Contest]) -> list[(Contest, School)]:
 
 	"""
-		Scrapes all schools (lists of courses) requested by a filter, and saves those lists
-		to the database. A progress bar is shown while that is happening.
-
-		The list of successfully scraped schools (associated with a contest) is returned.
+		@brief Internal method that scrapes all schools (lists of courses) requested by @p
+		filter, and saves those lists to the database.
+		@details A progress bar is shown while that is happening.
+		@returns The list of successfully scraped schools (each associated with its contest).
 	"""
 
 	# Only scrape the uncached schools. Cached schools are considered successfully scraped
@@ -167,12 +173,11 @@ def __try_scrape_course(database: Database, contest: Contest, school: School, co
 	-> (Contest, School, Course):
 
 	"""
-		Scrapes a course (list of candidates and place students) and saves it to the database.
+		@brief Internal method that scrapes a @p course (lists of candidates and accepted
+		students), and saves it to the @p database.
 
-		In case of error, it's printed to stderr and None is returned. Otherwise, the provided
-		(contest, school, course) tuple is returned.
-
-		This method should be run on the multiple threads of an executor.
+		@details This method should be run on the multiple threads of an executor.
+		@returns `None` in case of error, `(contest, school, course)` in case of success.
 	"""
 
 	try:
@@ -196,11 +201,12 @@ def __scrape_courses(filter: DGESFilter, executor: ThreadPoolExecutor, database:
 	successful_schools: list[(Contest, School)]) -> list[(Contest, School, Course)]:
 
 	"""
-		Scrapes all courses (lists of candidates) requested by a filter, and saves those lists
-		to the database. A progress bar is shown while that is happening.
+		@brief Internal method that scrapes all courses (lists of candidates) requested by
+		@p filter, and saves those lists to the @p database.
 
-		The list of successfully scraped courses (associated with their schools and contests)
-		is returned.
+		@details A progress bar is shown while that is happening.
+		@returns The list of successfully scraped courses (each associated with their contests
+		and schools).
 	"""
 
 	# Only scrape the uncached courses. Cached courses are considered successfully scraped
@@ -225,19 +231,13 @@ def __scrape_courses(filter: DGESFilter, executor: ThreadPoolExecutor, database:
 
 def scrape_website(filter: DGESFilter, workers: int, database_path: str = None) -> Database:
 	"""
-		This method builds a database by scraping all pages requested by the filter
+		@brief This method builds a database by scraping all pages requested by the @p filter.
 
-		Parameters
-		----------
-
-		filter: DGESFilter
-			The filter that will determine which pages will be downloaded and scraped
-		workers: int
-			The number of parallel workers. If None, the default value in
-			ThreadPoolExecutor will be used.
-		database_path:
-			The path to the database file. If None, the database won't be cached. If the
-			file doesn't exist, it'll be created.
+		@param filter The filter that will determine which pages will be downloaded and scraped
+		@param workers The number of parallel workers. If `None`, the default value in
+		`ThreadPoolExecutor` will be used.
+		@param database_path The path to the database file. If `None`, the database won't be
+		cached. If the file doesn't exist, it'll be created.
 	"""
 
 	database = Database.from_cache(database_path)
