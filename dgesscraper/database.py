@@ -68,10 +68,10 @@ class Database:
 		If you don't wish to access particular contests / schools / courses, you can iterate
 		through the whole (or part of the) database, using one of the following methods:
 
-		- [iterate_contests](@ref Database.iterate_contests)
-		- [iterate_schools](@ref Database.iterate_schools)
-		- [iterate_courses](@ref Database.iterate_courses)
-		- [iterate_students](@ref Database.iterate_students)
+		- [iterate_contests](@ref dgesscraper.database.Database.iterate_contests)
+		- [iterate_schools](@ref  dgesscraper.database.Database.iterate_schools)
+		- [iterate_courses](@ref  dgesscraper.database.Database.iterate_courses)
+		- [iterate_students](@ref dgesscraper.database.Database.iterate_students)
 
 		The provided [DGESFilter](@ref dgesscraper.filter.DGESFilter) allows you to iterate
 		through only a part of part of the database. Keep in mind that, for example, while
@@ -93,7 +93,7 @@ class Database:
 		dictionary that associates courses with lists of candidates.
 	"""
 
-	## See @ref Database.to_cache
+	## See [Database.to_cache](@ref dgesscraper.database.Database.to_cache)
 	ATTEMPT_WRITE_DATABASE_BACKUP_PATH = 'dgesdb.pickle'
 
 	def __init__(self, dictionary: DatabaseDict):
@@ -105,7 +105,7 @@ class Database:
 		"""
 			@brief Reads a DGES database from a file
 			@details The output is the internal dictionary in a binary format (see
-			         [pickle](https://docs.python.org/3/library/pickle.html))
+			[pickle](https://docs.python.org/3/library/pickle.html))
 		"""
 		with open(path, 'rb') as file:
 			return Database(pickle.load(file))
@@ -113,8 +113,11 @@ class Database:
 	@staticmethod
 	def from_cache(path: str) -> 'Database':
 		"""
-			@brief Similar to @ref Database.from_file.
-			@details Differences from @ref Database.from_file:
+			@brief Similar to
+			[Database.from_file](@ref dgesscraper.database.Database.from_file).
+
+			@details Differences from
+			[Database.from_file](@ref dgesscraper.database.Database.from_file):
 
 			- If @p path is `None` (no caching), no file operations will be performed.
 			- If there is no file in @p path, an empty @ref Database will be returned.
@@ -129,19 +132,22 @@ class Database:
 		"""
 			@brief Saves a DGES database to a file
 			@details The output is the internal dictionary in a binary format (see
-			         [pickle](https://docs.python.org/3/library/pickle.html))
+			[pickle](https://docs.python.org/3/library/pickle.html))
 		"""
 		with open(path, 'wb') as file:
 			pickle.dump(self.dictionary, file)
 
 	def to_cache(self, path: str) -> None:
 		"""
-			@brief Similar to @ref Database.to_file
-			@details Differences from @ref Database.to_file:
+			@brief Similar to
+			[Database.to_file](@ref dgesscraper.database.Database.to_file).
+			@details Differences from
+			[Database.to_file](@ref dgesscraper.database.Database.to_file):
 
 			- If @p path is `None` (no caching), no file operations will be performed.
 			- If writing to @p path fails, this method will attempt to write a backup copy
-			  of the database to @ref Database.ATTEMPT_WRITE_DATABASE_BACKUP_PATH.
+			of the database to
+			[Database.ATTEMPT_WRITE_DATABASE_BACKUP_PATH](@ref dgesscraper.database.Database.ATTEMPT_WRITE_DATABASE_BACKUP_PATH).
 		"""
 
 		if path is None: # No caching
@@ -168,11 +174,11 @@ class Database:
 			- A [Contest](@ref dgesscraper.types.Contest)
 
 			- A ([Contest](@ref dgesscraper.types.Contest),
-			     [School](@ref dgesscraper.types.School)) pair
+			[School](@ref dgesscraper.types.School)) pair
 
 			- A ([Contest](@ref dgesscraper.types.Contest),
-			     [School](@ref dgesscraper.types.School),
-			     [Course](@ref dgesscraper.types.Course)) tuple
+			[School](@ref dgesscraper.types.School),
+			[Course](@ref dgesscraper.types.Course)) tuple
 		"""
 
 		dictionary = self.dictionary

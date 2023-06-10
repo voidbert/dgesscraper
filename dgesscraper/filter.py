@@ -1,6 +1,6 @@
 """
 	@file filter.py
-	@package dgestypes.filters
+	@package dgesscraper.filter
 	@brief This module defines an abstract base class for filtering what to scrape in DGES's
 	       website or what to look up in a database.
 """
