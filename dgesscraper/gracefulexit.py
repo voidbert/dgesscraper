@@ -1,6 +1,8 @@
 """
-	This module contains a class for gracefully exiting the program while a ThreadPoolExecutor
-	is active.
+	@file gracefulexit.py
+	@package dgesscraper.gracefulexit
+	@brief This module contains a class for gracefully exiting the program while a
+	       `ThreadPoolExecutor` is active.
 """
 
 """
@@ -27,29 +29,58 @@ from dgesscraper.database import Database
 
 class GracefulExit:
 	"""
-		This class sets signal handlers such that, if the program is terminated, all tasks
-		currently running on the associated ThreadPoolExecutor will finish, and no more tasks
-		will start. After that, the program will be exited.
+		@brief If the program is terminated, this class will let the currently-running tasks
+		on the `ThreadPoolExecutor` terminate, stopping the program after that.
 
-		It must be used with a with statement from the main thread.
+		@anchor classdesc
+		@details This class is meant to be used with a `with` statement:
+
+		```
+		with ThreadPoolExecutor() as executor:
+			with GracefulExit(executor, database, database_path) as graceful:
+		```
+
+		It must be used from the main thread, as signal handlers need to be set.
+
+		If the program is terminated, after not letting the executor run any more tasks, a
+		provided database can be cached to disk.
 	"""
 
+	## All signals that need to be handled as program termination
 	__EXIT_SIGNALS = [ signal.SIGINT, signal.SIGTERM, signal.SIGTSTP, signal.SIGQUIT ]
 
 	def __init__(self, executor: ThreadPoolExecutor, database: Database, database_path: str):
-		""" Note: database_path can be None, so that the database isn't cached """
+		"""
+			@brief See [the class description](@ref classdesc)
 
+			@param executor The `ThreadPoolExecutor`
+			@param database The [Database](@ref dgesscraper.database.Database) to be saved if
+			the program is told to terminate.
+			@param database_path Can be `None`, so that the database isn't cached
+		"""
+
+		## @brief `ThreadPoolExecutor`
 		self.executor            = executor
+		## @brief A dictionary that associates signals with their handlers, before this class
+		## sets its own
 		self.old_handlers        = {}
+		## @brief The [Database](@ref dgesscraper.database.Database) to be saved if the program
+		## is told to terminate.
 		self.database            = database
+		## @brief Where to save the database in case of termination
 		self.database_path       = database_path
+		## @brief Whether the old signal handlers should be restored
+		## @details Becomes `False` if the program is terminated.
 		self.must_reset_handlers = True
 
 	def __ignore_signal(self, sig, frame):
-		""" After the shutdown process begins, ignore termination signals """
+		"""
+			@brief After the shutdown process begins, this internal method is used to ignore
+			termination signals
+		"""
 
 	def __handle_signal(self, sig, frame):
-		""" Internal method for handling signals """
+		""" @brief Internal method for handling signals before the shutdown process begins """
 
 		print('\nOrdered to stop. Shutting down ...')
 
@@ -66,8 +97,9 @@ class GracefulExit:
 
 	def __enter__(self):
 		"""
-			Stores previous signal handlers to restore them if the program is not terminated,
-			and then set the new handlers
+			@brief Internal method called in the beginning of the `with` statement.
+			@details Stores previous signal handlers to restore them if the program is not
+			terminated, and then sets the new handlers.
 		"""
 
 		for sig in GracefulExit.__EXIT_SIGNALS:
@@ -75,7 +107,10 @@ class GracefulExit:
 			signal.signal(sig, self.__handle_signal)
 
 	def __exit__(self, exc_type, exc_value, traceback):
-		""" Restores the previous signal handlers if a signal wasn't captured """
+		"""
+			@brief Internal method called in the end of the `with` statement.
+			@details Restores the previous signal handlers if a signal wasn't captured.
+		"""
 
 		if self.must_reset_handlers:
 			for sig in GracefulExit.__EXIT_SIGNALS:
