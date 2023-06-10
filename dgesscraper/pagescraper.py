@@ -41,6 +41,12 @@ def __sanitize_html(html: str) -> str:
 	"""
 	return ''.join([ c for c in html.strip() if c not in ['\t', '\n'] ])
 
+def __detect_too_many_requests(html: str) -> str:
+	""" @brief Raises a runtime error if a "too many requests" message is found on @p html """
+
+	if 'número de pedidos' in html: # Translation: number of requests
+		raise RuntimeError('Too many requests')
+
 # +---------------------------------+
 # | SCHOOL AND COURSE LIST SCRAPING |
 # +---------------------------------+
@@ -70,13 +76,20 @@ def __scrape_option_list(html: str) -> Iterator[tuple[str, str]]:
 		@returns Iterates through pairs with the structure `(code, name)`
 	"""
 
+	__detect_too_many_requests(html)
+
 	# html5lib, though slower, is needed, because the website doesn't close its HTML tags
 	soup = BeautifulSoup(html, 'html5lib')
 
+	empty = True
 	tag = soup.find('option')
 	while tag is not None:
+		empty = False
 		yield (tag['value'], __option_list_remove_code(tag.get_text()))
 		tag = tag.find_next('option')
+
+	if empty:
+		raise RuntimeError('Invalid option (school / course) list')
 
 def scrape_school_list(html: str, school_type: SchoolType) -> Iterator[School]:
 	"""
@@ -190,6 +203,8 @@ def scrape_candidate_list(html: str, accepted: Iterator[tuple[int, str]] = iter(
 		candidate was or not accepted.
 	"""
 
+	__detect_too_many_requests(html)
+
 	accepted = list(accepted)
 
 	# html5lib, though slower, is needed, because the website doesn't close its HTML tags
@@ -202,10 +217,15 @@ def scrape_candidate_list(html: str, accepted: Iterator[tuple[int, str]] = iter(
 	if search is not None:
 		return
 
+	empty = True
 	row = soup.find('tr')
 	while row is not None:
+		empty = False
 		yield __scrape_candidate_list_row(row, accepted)
 		row = row.find_next_sibling('tr')
+
+	if empty:
+		raise RuntimeError('Invalid candidate list')
 
 def __scrape_accepted_list_row(row: BeautifulSoup) -> (int, str):
 	"""
@@ -229,6 +249,8 @@ def scrape_accepted_list(html: str) -> Iterator[tuple[int, str]]:
 		@returns Iterates through pairs with the stucture `(ID, name)`.
 	"""
 
+	__detect_too_many_requests(html)
+
 	# html5lib, though slower, is needed, because the website doesn't close its HTML tags
 	soup = BeautifulSoup(html, 'html5lib')
 	soup = soup.find_all(class_='caixa').pop().find('tbody') # Table with candidates
@@ -239,8 +261,13 @@ def scrape_accepted_list(html: str) -> Iterator[tuple[int, str]]:
 	if search is not None:
 		return
 
+	empty = True
 	row = soup.find('tr')
 	while row is not None:
+		empty = False
 		yield __scrape_accepted_list_row(row)
 		row = row.find_next_sibling('tr')
+
+	if empty:
+		raise RuntimeError('Invalid list of accepted students')
 

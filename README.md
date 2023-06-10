@@ -39,16 +39,15 @@ from dgesscraper.filter import UniversalFilter
 from dgesscraper.sitescraper import scrape_website
 
 filter = UniversalFilter([2021, 2022]) # Scrape all phases from 2021 and 2022
-database = scrape_website(filter, 8, 'database.pickle')
+database = scrape_website(filter, 4, 'database.pickle')
 ```
 
-This example uses 8 threads and saves the database to `database.pickle`. You can set the database
+This example uses 4 threads and saves the database to `database.pickle`. You can set the database
 path to `None`, so that no caching is performed. Also, you can read about custom filters ahead, to
 scrape only particular parts of the website.
 
-When scraping lots of pages, you **will likely get errors**. They're likely network / server
-related. Run your scraper script multiple times until no errors remain. If the same scraping error
-persists, file an issue, as it's likely a problem with the scraper.
+Be careful with high numbers of threads, because the server will limit the number of requests you
+can issue, returning error pages that cannot be scraped, leading to many errors.
 
 ### Database manipulation
 
