@@ -29,7 +29,7 @@ def create_school_list_request(contest: Contest, school_type: SchoolType) -> Req
 		       type in a given contest
 	"""
 
-	url = f'https://www.dges.gov.pt/coloc/{contest.year}/col{contest.phase.value}listas.asp?' \
+	url = f'http://www.dges.gov.pt/coloc/{contest.year}/col{contest.phase.value}listas.asp?' \
 		f'CodR={school_type.to_server_code()}&action=2'
 	return Request('GET', url)
 
@@ -39,7 +39,7 @@ def create_course_list_request(contest: Contest, school: School) -> Request:
 		       school provided during a contest
 	"""
 
-	url = f'https://www.dges.gov.pt/coloc/{contest.year}/col{contest.phase.value}listaredir.asp'
+	url = f'http://www.dges.gov.pt/coloc/{contest.year}/col{contest.phase.value}listaredir.asp'
 	return Request('POST', url, data = {
 		'CodEstab': school.code,
 		'CodR': school.school_type.to_server_code(),
@@ -60,7 +60,7 @@ def create_candidate_list_request(contest: Contest, school: School, course: Cour
 	#      candidates. It is used to determine if a "Next page" button should exist
 	#
 	# These parameters are set to show all candidates in the same page
-	url = f'https://www.dges.gov.pt/coloc/{contest.year}/col{contest.phase.value}listaser.asp?' \
+	url = f'http://www.dges.gov.pt/coloc/{contest.year}/col{contest.phase.value}listaser.asp?' \
 		f'CodEstab={school.code}&CodCurso={course.code}&ids=1&ide=9999&Mx=0'
 	return Request('GET', url)
 
@@ -70,7 +70,7 @@ def create_accepted_list_request(contest: Contest, school: School, course: Cours
 		       course in a school, in a given contest.
 	"""
 
-	url = f'https://www.dges.gov.pt/coloc/{contest.year}/col{contest.phase.value}listacol.asp'
+	url = f'http://www.dges.gov.pt/coloc/{contest.year}/col{contest.phase.value}listacol.asp'
 	return Request('POST', url, data = {
 		'CodCurso': course.code,
 		'CodEstab': school.code,
